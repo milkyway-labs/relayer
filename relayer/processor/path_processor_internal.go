@@ -10,9 +10,10 @@ import (
 
 	conntypes "github.com/cosmos/ibc-go/v8/modules/core/03-connection/types"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
-	"github.com/cosmos/relayer/v2/relayer/provider"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/cosmos/relayer/v2/relayer/provider"
 )
 
 // preInitKey is used to declare intent to initialize a connection or channel handshake
@@ -656,39 +657,6 @@ func (pp *PathProcessor) unrelayedChannelCloseMessages(
 	return res
 }
 
-func (pp *PathProcessor) getUnrelayedClientICQMessages(pathEnd *pathEndRuntime, queryMessages, responseMessages ClientICQMessageCache) (res []clientICQMessage) {
-	var doneQueryIDs []provider.ClientICQQueryID
-
-ClientICQLoop:
-	for queryID, queryMsg := range queryMessages {
-		for resQueryID := range responseMessages {
-			if queryID == resQueryID {
-				// done with this query, remove all retention.
-				doneQueryIDs = append(doneQueryIDs, queryID)
-				continue ClientICQLoop
-			}
-		}
-		// query ID not found in response messages, check if should send queryMsg and send
-		if pathEnd.shouldSendClientICQMessage(queryMsg) {
-			res = append(res, clientICQMessage{
-				info: queryMsg,
-			})
-		}
-	}
-
-	// remove all retention for queries that have been responded to.
-	for queryID := range responseMessages {
-		doneQueryIDs = append(doneQueryIDs, queryID)
-	}
-
-	pathEnd.clientICQProcessing.deleteMessages(doneQueryIDs...)
-	pathEnd.messageCache.ClientICQ.DeleteMessages(doneQueryIDs...)
-
-	// now iterate through completion message and remove any leftover messages.
-
-	return res
-}
-
 // updateClientTrustedState combines the counterparty chains trusted IBC header
 // with the latest client state, which will be used for constructing MsgUpdateClient messages.
 func (pp *PathProcessor) updateClientTrustedState(src *pathEndRuntime, dst *pathEndRuntime) {
@@ -1039,29 +1007,16 @@ func (pp *PathProcessor) processLatestMessages(ctx context.Context, cancel func(
 	pathEnd1ChannelMessages = append(pathEnd1ChannelMessages, pathEnd1ChanCloseMessages...)
 	pathEnd2ChannelMessages = append(pathEnd2ChannelMessages, pathEnd2ChanCloseMessages...)
 
-	pathEnd1ClientICQMessages := pp.getUnrelayedClientICQMessages(
-		pp.pathEnd1,
-		pp.pathEnd1.messageCache.ClientICQ[ClientICQTypeRequest],
-		pp.pathEnd1.messageCache.ClientICQ[ClientICQTypeResponse],
-	)
-	pathEnd2ClientICQMessages := pp.getUnrelayedClientICQMessages(
-		pp.pathEnd2,
-		pp.pathEnd2.messageCache.ClientICQ[ClientICQTypeRequest],
-		pp.pathEnd2.messageCache.ClientICQ[ClientICQTypeResponse],
-	)
-
 	pathEnd1Messages := pathEndMessages{
 		connectionMessages: pathEnd1ConnectionMessages,
 		channelMessages:    pathEnd1ChannelMessages,
 		packetMessages:     pathEnd1PacketMessages,
-		clientICQMessages:  pathEnd1ClientICQMessages,
 	}
 
 	pathEnd2Messages := pathEndMessages{
 		connectionMessages: pathEnd2ConnectionMessages,
 		channelMessages:    pathEnd2ChannelMessages,
 		packetMessages:     pathEnd2PacketMessages,
-		clientICQMessages:  pathEnd2ClientICQMessages,
 	}
 
 	// now assemble and send messages in parallel

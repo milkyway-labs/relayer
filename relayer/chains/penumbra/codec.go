@@ -26,7 +26,6 @@ import (
 	ibc "github.com/cosmos/ibc-go/v8/modules/core"
 
 	cosmosmodule "github.com/cosmos/relayer/v2/relayer/chains/cosmos/module"
-	"github.com/cosmos/relayer/v2/relayer/chains/cosmos/stride"
 	ethermintcodecs "github.com/cosmos/relayer/v2/relayer/codecs/ethermint"
 	injectivecodecs "github.com/cosmos/relayer/v2/relayer/codecs/injective"
 )
@@ -52,7 +51,6 @@ var moduleBasics = []module.AppModuleBasic{
 	transfer.AppModuleBasic{},
 	ibc.AppModuleBasic{},
 	cosmosmodule.AppModuleBasic{},
-	stride.AppModuleBasic{},
 }
 
 type Codec struct {

@@ -10,14 +10,14 @@ import (
 	conntypes "github.com/cosmos/ibc-go/v8/modules/core/03-connection/types"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
-	"github.com/cosmos/relayer/v2/relayer/provider"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/cosmos/relayer/v2/relayer/provider"
 )
 
 var _ zapcore.ObjectMarshaler = packetIBCMessage{}
 var _ zapcore.ObjectMarshaler = channelIBCMessage{}
 var _ zapcore.ObjectMarshaler = connectionIBCMessage{}
-var _ zapcore.ObjectMarshaler = clientICQMessage{}
 
 // pathEndMessages holds the different IBC messages that
 // will attempt to be sent to the pathEnd.
@@ -25,7 +25,6 @@ type pathEndMessages struct {
 	connectionMessages []connectionIBCMessage
 	channelMessages    []channelIBCMessage
 	packetMessages     []packetIBCMessage
-	clientICQMessages  []clientICQMessage
 }
 
 type ibcMessage interface {
@@ -279,56 +278,6 @@ func (msg connectionIBCMessage) MarshalLogObject(enc zapcore.ObjectEncoder) erro
 	enc.AddString("conn_id", msg.info.ConnID)
 	enc.AddString("cntrprty_conn_id", msg.info.CounterpartyConnID)
 	enc.AddString("cntrprty_commitment_prefix", msg.info.CounterpartyCommitmentPrefix.String())
-	return nil
-}
-
-const (
-	ClientICQTypeRequest  ClientICQType = "query_request"
-	ClientICQTypeResponse ClientICQType = "query_response"
-)
-
-// clientICQMessage holds a client ICQ message info,
-// useful for sending messages around internal to the PathProcessor.
-type clientICQMessage struct {
-	info provider.ClientICQInfo
-}
-
-// assemble executes the query against the source chain,
-// then, if successful, assembles the response message for the destination.
-func (msg clientICQMessage) assemble(
-	ctx context.Context,
-	src, dst *pathEndRuntime,
-) (provider.RelayerMessage, error) {
-	ctx, cancel := context.WithTimeout(ctx, interchainQueryTimeout)
-	defer cancel()
-
-	proof, err := src.chainProvider.QueryICQWithProof(ctx, msg.info.Type, msg.info.Request, src.latestBlock.Height-1)
-	if err != nil {
-		return nil, fmt.Errorf("error during interchain query: %w", err)
-	}
-
-	return dst.chainProvider.MsgSubmitQueryResponse(msg.info.Chain, msg.info.QueryID, proof)
-}
-
-// tracker creates a message tracker for message status
-func (msg clientICQMessage) tracker(assembled provider.RelayerMessage) messageToTrack {
-	return clientICQMessageToTrack{
-		msg:       msg,
-		assembled: assembled,
-	}
-}
-
-func (clientICQMessage) msgType() string {
-	return "client ICQ"
-}
-
-// MarshalLogObject satisfies the zapcore.ObjectMarshaler interface
-// so that you can use zap.Object("messages", r) when logging.
-// This is typically useful when logging details about a partially sent result.
-func (msg clientICQMessage) MarshalLogObject(enc zapcore.ObjectEncoder) error {
-	enc.AddString("type", msg.info.Type)
-	enc.AddString("query_id", string(msg.info.QueryID))
-	enc.AddString("request", string(msg.info.Request))
 	return nil
 }
 
@@ -655,23 +604,6 @@ func (t channelMessageToTrack) msgType() string {
 }
 
 func (t channelMessageToTrack) MarshalLogObject(enc zapcore.ObjectEncoder) error {
-	return t.msg.MarshalLogObject(enc)
-}
-
-type clientICQMessageToTrack struct {
-	msg       clientICQMessage
-	assembled provider.RelayerMessage
-}
-
-func (t clientICQMessageToTrack) assembledMsg() provider.RelayerMessage {
-	return t.assembled
-}
-
-func (t clientICQMessageToTrack) msgType() string {
-	return t.msg.msgType()
-}
-
-func (t clientICQMessageToTrack) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	return t.msg.MarshalLogObject(enc)
 }
 

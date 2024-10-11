@@ -373,10 +373,6 @@ type ChainProvider interface {
 	// QueryICQWithProof performs an ABCI query and includes the required proofOps.
 	QueryICQWithProof(ctx context.Context, msgType string, request []byte, height uint64) (ICQProof, error)
 
-	// MsgSubmitQueryResponse takes the counterparty chain ID, the ICQ query ID, and the query result proof,
-	// then assembles a MsgSubmitQueryResponse message formatted for sending to this chain.
-	MsgSubmitQueryResponse(chainID string, queryID ClientICQQueryID, proof ICQProof) (RelayerMessage, error)
-
 	// [End] Client ICQ message assembly
 
 	// Query heavy relay methods. Only used for flushing old packets.

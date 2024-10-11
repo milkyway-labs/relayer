@@ -12,10 +12,10 @@ import (
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	conntypes "github.com/cosmos/ibc-go/v8/modules/core/03-connection/types"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
-	"github.com/cosmos/relayer/v2/relayer/processor"
-	"github.com/cosmos/relayer/v2/relayer/provider"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/cosmos/relayer/v2/relayer/provider"
 )
 
 // IbcMessage is the type used for parsing all possible properties of IBC messages
@@ -74,11 +74,6 @@ func ParseIBCMessageFromEvent(
 	case clienttypes.EventTypeCreateClient, clienttypes.EventTypeUpdateClient,
 		clienttypes.EventTypeUpgradeClient, clienttypes.EventTypeSubmitMisbehaviour:
 		msgInfo = new(ClientInfo)
-	case string(processor.ClientICQTypeRequest), string(processor.ClientICQTypeResponse):
-		msgInfo = &ClientICQInfo{
-			Height: height,
-			Source: chainID,
-		}
 	default:
 		return nil
 	}

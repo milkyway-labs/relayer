@@ -11,8 +11,9 @@ import (
 	conntypes "github.com/cosmos/ibc-go/v8/modules/core/03-connection/types"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
-	"github.com/cosmos/relayer/v2/relayer/provider"
 	"go.uber.org/zap"
+
+	"github.com/cosmos/relayer/v2/relayer/provider"
 )
 
 // pathEndRuntime is used at runtime for each chain involved in the path.
@@ -931,15 +932,6 @@ func (pathEnd *pathEndRuntime) trackProcessingMessage(tracker messageToTrack) ui
 		} else {
 			inProgress.setProcessing(t.assembled != nil, inProgress.retryCount+1)
 		}
-	case clientICQMessageToTrack:
-		queryID := t.msg.info.QueryID
-
-		inProgress := pathEnd.clientICQProcessing.get(queryID)
-		if inProgress == nil {
-			pathEnd.clientICQProcessing.set(queryID, pathEnd.latestBlock.Height, t.assembled != nil)
-		} else {
-			inProgress.setProcessing(t.assembled != nil, inProgress.retryCount+1)
-		}
 	}
 
 	return retryCount
@@ -994,13 +986,6 @@ func (pathEnd *pathEndRuntime) trackFinishedProcessingMessage(tracker messageToT
 		}
 
 		inProgress := msgProcessCache.get(connectionKey)
-		if inProgress != nil {
-			inProgress.setFinishedProcessing(pathEnd.latestBlock.Height)
-		}
-	case clientICQMessageToTrack:
-		queryID := t.msg.info.QueryID
-
-		inProgress := pathEnd.clientICQProcessing.get(queryID)
 		if inProgress != nil {
 			inProgress.setFinishedProcessing(pathEnd.latestBlock.Height)
 		}

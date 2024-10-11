@@ -11,9 +11,10 @@ import (
 	legacyerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
-	"github.com/cosmos/relayer/v2/relayer/provider"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/cosmos/relayer/v2/relayer/provider"
 )
 
 // messageProcessor is used for concurrent IBC message assembly and sending
@@ -26,10 +27,9 @@ type messageProcessor struct {
 	msgUpdateClient           provider.RelayerMessage
 	clientUpdateThresholdTime time.Duration
 
-	pktMsgs       []packetMessageToTrack
-	connMsgs      []connectionMessageToTrack
-	chanMsgs      []channelMessageToTrack
-	clientICQMsgs []clientICQMessageToTrack
+	pktMsgs  []packetMessageToTrack
+	connMsgs []connectionMessageToTrack
+	chanMsgs []channelMessageToTrack
 
 	isLocalhost bool
 }
@@ -52,8 +52,6 @@ func (mp *messageProcessor) trackMessage(tracker messageToTrack, i int) {
 		mp.chanMsgs[i] = t
 	case connectionMessageToTrack:
 		mp.connMsgs[i] = t
-	case clientICQMessageToTrack:
-		mp.clientICQMsgs[i] = t
 	}
 }
 
@@ -66,9 +64,6 @@ func (mp *messageProcessor) trackers() (trackers []messageToTrack) {
 		trackers = append(trackers, t)
 	}
 	for _, t := range mp.connMsgs {
-		trackers = append(trackers, t)
-	}
-	for _, t := range mp.clientICQMsgs {
 		trackers = append(trackers, t)
 	}
 	return trackers
@@ -196,14 +191,6 @@ func (mp *messageProcessor) assembleMessages(ctx context.Context, messages pathE
 	for i, msg := range messages.channelMessages {
 		wg.Add(1)
 		go mp.assembleMessage(ctx, msg, src, dst, i, &wg)
-	}
-
-	if !mp.isLocalhost {
-		mp.clientICQMsgs = make([]clientICQMessageToTrack, len(messages.clientICQMessages))
-		for i, msg := range messages.clientICQMessages {
-			wg.Add(1)
-			go mp.assembleMessage(ctx, msg, src, dst, i, &wg)
-		}
 	}
 
 	mp.pktMsgs = make([]packetMessageToTrack, len(messages.packetMessages))

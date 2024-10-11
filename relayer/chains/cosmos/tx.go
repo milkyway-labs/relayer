@@ -43,12 +43,12 @@ import (
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	tmclient "github.com/cosmos/ibc-go/v8/modules/light-clients/07-tendermint"
 	localhost "github.com/cosmos/ibc-go/v8/modules/light-clients/09-localhost"
-	strideicqtypes "github.com/cosmos/relayer/v2/relayer/chains/cosmos/stride"
-	"github.com/cosmos/relayer/v2/relayer/ethermint"
-	"github.com/cosmos/relayer/v2/relayer/provider"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/cosmos/relayer/v2/relayer/ethermint"
+	"github.com/cosmos/relayer/v2/relayer/provider"
 )
 
 // Variables used for retries
@@ -1321,25 +1321,6 @@ func (cc *CosmosProvider) QueryICQWithProof(ctx context.Context, path string, re
 		ProofOps: res.ProofOps,
 		Height:   res.Height,
 	}, nil
-}
-
-func (cc *CosmosProvider) MsgSubmitQueryResponse(chainID string, queryID provider.ClientICQQueryID, proof provider.ICQProof) (provider.RelayerMessage, error) {
-	signer, err := cc.Address()
-	if err != nil {
-		return nil, err
-	}
-	msg := &strideicqtypes.MsgSubmitQueryResponse{
-		ChainId:     chainID,
-		QueryId:     string(queryID),
-		Result:      proof.Result,
-		ProofOps:    proof.ProofOps,
-		Height:      proof.Height,
-		FromAddress: signer,
-	}
-
-	submitQueryRespMsg := NewCosmosMessage(msg, nil).(CosmosMessage)
-	submitQueryRespMsg.FeegrantDisabled = true
-	return submitQueryRespMsg, nil
 }
 
 func (cc *CosmosProvider) MsgSubmitMisbehaviour(clientID string, misbehaviour ibcexported.ClientMessage) (provider.RelayerMessage, error) {
